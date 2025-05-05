@@ -1,0 +1,16 @@
+# Ignore compiled python files
+*.pyc
+__pycache__/
+
+# Ignore virtual environment
+venv/
+
+# Ignore logs
+logs/*
+
+#Ignore IDE specific files
+.idea/
+
+# Ignore private folders files
+private_doc/*
+.DS_Store
