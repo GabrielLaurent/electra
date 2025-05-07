@@ -1,44 +1,59 @@
-# examples/pretrain.py
 import torch
-from electra.model.generator import Generator
-from electra.model.discriminator import Discriminator
 from electra.pretraining.trainer import PreTrainer
-from electra.data.datasets import TextDataset
-from electra.data.data_utils import mask_tokens
-from transformers import BertTokenizer
-from torch.utils.data import DataLoader
+from electra.data.datasets import PretrainingDataset # Assuming you have this
 
-# Example pre-training script.  Fill in the details!
-if __name__ == '__main__':
+# Define the configuration
+class Config:
+    def __init__(self):
+        self.vocab_size = 30522  # Example: BERT vocab size
+        self.embedding_dim = 256
+        self.hidden_size = 256
+        self.num_layers = 4
+        self.num_attention_heads = 4
+        self.intermediate_size = 1024
+        self.max_position_embeddings = 512
+        self.type_vocab_size = 2
+        self.pad_token_id = 0
+        self.learning_rate = 1e-4
+        self.batch_size = 32
+        self.num_epochs = 10
+
+# Load the dataset
+def load_dataset(file_path, config):
+    # Replace this with your actual dataset loading logic
+    # For instance, using a LineByLineTextDataset from transformers
+    # or a custom dataset implementation
+    class DummyDataset(torch.utils.data.Dataset):
+        def __init__(self, vocab_size, seq_len, size):
+            self.data = [{'input_ids': torch.randint(0, vocab_size, (seq_len,))} for _ in range(size)]
+
+        def __len__(self):
+            return len(self.data)
+
+        def __getitem__(self, idx):
+            return self.data[idx]
+
+    return DummyDataset(config.vocab_size, 128, 1000)
+
+
+
+# Main function
+def main():
     # Configuration
-    vocab_size = 30522  # Adjust based on your tokenizer's vocabulary size
-    hidden_size = 256
-    num_layers = 3
-    num_heads = 4
-    dropout = 0.1
-    batch_size = 32
-    max_length = 128
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    config = Config()
 
-    # Initialize Generator and Discriminator
-    generator = Generator(vocab_size, hidden_size, num_layers, num_heads, dropout).to(device)
-    discriminator = Discriminator(hidden_size, num_layers, num_heads, dropout).to(device)
+    # Load datasets
+    train_dataset = load_dataset("path/to/train_data.txt", config)
+    eval_dataset = load_dataset("path/to/eval_data.txt", config)
 
-    # Load data and prepare DataLoader (replace with your actual data loading)
-    texts = ["This is an example sentence.", "Another example sentence here."]  # Replace with your actual text data
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased') # replace with your own tokenizer
-    dataset = TextDataset(texts, tokenizer, max_length) # replace Texts with your data
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    mask_token_id = tokenizer.mask_token_id
+    # Initialize trainer
+    trainer = PreTrainer(config, train_dataset, eval_dataset)
 
-    # Define Optimizers
-    gen_optimizer = torch.optim.AdamW(generator.parameters(), lr=1e-4)
-    disc_optimizer = torch.optim.AdamW(discriminator.parameters(), lr=1e-4)
+    # Train the model
+    trainer.train(config.num_epochs)
 
-    # Initialize PreTrainer
-    pre_trainer = PreTrainer(generator, discriminator, data_loader, gen_optimizer, disc_optimizer, device)
+    # Evaluate the model (optional)
+    trainer.evaluate()
 
-    # Train for some epochs
-    for epoch in range(1):
-        pre_trainer.train_epoch()
-        print(f"Epoch {epoch+1} complete")
+if __name__ == "__main__":
+    main()
